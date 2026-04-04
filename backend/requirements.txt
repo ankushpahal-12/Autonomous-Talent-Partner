@@ -1,0 +1,27 @@
+# Autonomous Talent Partner Dependencies
+
+# Agent Frameworks
+crewai
+langchain
+langgraph
+
+# RAG & Embeddings
+chromadb
+sentence-transformers
+pinecone-client
+langchain-community
+langchain-google-genai
+langchain-chroma
+pypdf
+
+# UI
+streamlit
+
+# Utilities
+python-dotenv
+pandas
+requests
+mcp
+fastapi
+motor
+python-multipart

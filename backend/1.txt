@@ -1,0 +1,278 @@
+## Autonomous Talent Partner – Complete Implementation with Feedback Loop
+
+The **Autonomous Talent Partner** is an AI-powered recruitment system that automates the entire hiring pipeline — from resume ingestion to candidate communication — using **LLMs, RAG (Retrieval-Augmented Generation), hybrid memory (JSON + vector), workflow automation via n8n, and a continuous feedback loop for system improvement**.
+
+---
+
+## 🔧 System Architecture Overview
+
+* **Frontend:** React (HR dashboard + review panel)
+* **Backend:** FastAPI (Python) for AI processing
+* **Database:** MongoDB (structured JSON storage)
+* **Vector DB:** Pinecone / ChromaDB (semantic embeddings)
+* **Automation:** n8n (email + interview scheduling)
+
+---
+
+## ⚙️ Step-by-Step Working
+
+### 🔹 Step 1: Resume Upload
+
+HR uploads resumes via:
+
+* React dashboard
+* Or Google Drive
+
+The backend receives and processes the files automatically.
+
+---
+
+### 🔹 Step 2: Store Resume File
+
+Resume files are stored (local/cloud), and MongoDB stores metadata:
+
+```json id="a1"
+{
+  "_id": "candidate_123",
+  "file_url": "/resumes/ankush.pdf",
+  "status": "uploaded",
+  "parsed": false
+}
+```
+
+---
+
+### 🔹 Step 3: Resume Parsing
+
+The backend:
+
+* Extracts text from resume
+* Uses LLM to extract:
+
+  * Name, Email
+  * Skills
+  * Projects
+  * Achievements
+  * Certifications
+
+---
+
+### 🔹 Step 4: Convert to JSON
+
+Structured candidate profile is created:
+
+```json id="a2"
+{
+  "candidate_id": "123",
+  "name": "Ankush Sharma",
+  "email": "ankush@email.com",
+  "skills": ["Python", "ML"],
+  "projects": ["Churn Prediction"],
+  "status": "pending_review"
+}
+```
+
+---
+
+### 🔹 Step 5: Store JSON in MongoDB
+
+MongoDB stores parsed data:
+
+```json id="a3"
+{
+  "_id": "candidate_123",
+  "parsed_data": { ... },
+  "status": "processed"
+}
+```
+
+---
+
+### 🔹 Step 6: Create Embeddings
+
+* Convert skills/projects into embeddings
+* Store in vector DB
+* Link using `candidate_id`
+
+---
+
+### 🔹 Step 7: RAG-Based Matching
+
+* Job description → embedding
+* Compare with candidates
+* Retrieve top matches
+
+Hybrid scoring:
+
+* Semantic similarity
+* Skill matching
+
+---
+
+### 🔹 Step 8: AI Decision Making
+
+System generates:
+
+* Match score
+* Decision (Selected/Rejected)
+
+---
+
+### 🔹 Step 9: Explainable Rejection
+
+If rejected, system generates:
+
+```json id="a4"
+{
+  "match_score": 60,
+  "rejection_details": {
+    "missing_skills": ["Deep Learning"],
+    "experience_gap": "1 vs 3 years"
+  }
+}
+```
+
+---
+
+### 🔹 Step 10: Human Review (HITL)
+
+HR can:
+
+* Approve
+* Reject
+* Modify decision
+
+This ensures reliability.
+
+---
+
+### 🔹 Step 11: Store Final Decision
+
+MongoDB is updated:
+
+```json id="a5"
+{
+  "ai_decision": "selected",
+  "final_decision": "rejected",
+  "reviewed_by": "HR"
+}
+```
+
+---
+
+### 🔹 Step 12: Feedback Loop (Learning System) ⭐
+
+This is the **most important advanced feature**.
+
+The system stores:
+
+* AI decision
+* HR final decision
+* Difference between them
+
+Example:
+
+```json id="a6"
+{
+  "candidate_id": "123",
+  "ai_decision": "selected",
+  "final_decision": "rejected",
+  "feedback": "Candidate lacks practical experience"
+}
+```
+
+---
+
+### 🔹 How Feedback Loop Works
+
+1. Compare AI vs HR decisions
+2. If mismatch:
+
+   * Store as feedback data
+3. Use this data to:
+
+   * Improve scoring logic
+   * Adjust thresholds
+   * Train future ML models
+
+---
+
+### 🔹 Benefits of Feedback Loop
+
+* Improves decision accuracy
+* Reduces AI errors
+* Enables self-learning system
+* Builds training dataset for custom model
+
+---
+
+### 🔹 Step 13: Re-Engagement System
+
+Rejected candidates are stored and reused.
+
+When new job is added:
+
+* Re-evaluate old candidates
+* If match improves → reconsider
+
+---
+
+### 🔹 Step 14: Trigger n8n Workflow
+
+Backend sends data via webhook to **n8n**
+
+---
+
+### 🔹 Step 15: Automation
+
+n8n performs:
+
+#### If Selected:
+
+* Send email
+* Schedule interview
+
+#### If Rejected:
+
+* Send rejection email
+
+#### If Re-engaged:
+
+* Send new opportunity email
+
+---
+
+## 🔄 Final Workflow
+
+Resume Upload → Storage → Parsing → JSON → Embedding → RAG Matching → Decision → Review → Feedback Loop → Store → n8n → Communication
+
+---
+
+## 🧠 Key Features
+
+* Automated resume processing
+* Hybrid memory (MongoDB + Vector DB)
+* RAG-based matching
+* Explainable AI
+* Human-in-the-loop review
+* Feedback loop for learning ⭐
+* Re-engagement system
+* n8n workflow automation
+
+---
+
+## 🏗️ Architectural & Technical Enhancements
+
+*   **Knowledge Graph Integration**: Instead of just using a Vector DB for semantic similarity, build a Knowledge Graph (using Neo4j or similar) that maps the relationships between skills (e.g., "React" is related to "Next.js" and is a child of "JavaScript"). This makes your AI much smarter when a candidate has a related skill instead of the exact keyword.
+*   **Event-Driven Architecture (Kafka/RabbitMQ)**: As the system scales, relying entirely on FastAPI synchronous endpoints for heavy LLM processing might cause bottlenecks. Introduce a message broker. When a resume is uploaded, drop an event in a queue, and let background worker nodes handle the parsing, embedding, and email triggers asynchronously.
+*   **Multi-Agent System for Review**: Instead of a single "Decision AI," use an agentic workflow:
+    *   **Agent 1 (Screener)**: Checks hard requirements (Visas, Location).
+    *   **Agent 2 (Technical Reviewer)**: Deep dives into project complexity and tech stack.
+    *   **Agent 3 (Culture Fit)**: Highlights soft skills based on resume wording.
+    *   **Lead Agent**: Synthesizes the reports into the final recommendation.
+
+---
+
+## 🚀 Conclusion
+
+The system creates a fully automated and intelligent hiring pipeline. With the addition of a feedback loop, it evolves into a **self-improving AI system**, capable of learning from past decisions and continuously enhancing recruitment accuracy and efficiency.
