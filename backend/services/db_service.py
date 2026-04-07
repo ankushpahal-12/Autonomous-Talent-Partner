@@ -107,3 +107,40 @@ async def update_candidate_decision(candidate_id: str, decision: str, reason: st
     except Exception as e:
         print(f"Failed to update decision: {e}")
         return False
+
+async def update_candidate_review(candidate_id: str, agent_reports: dict) -> bool:
+    """
+    Saves the complete AI multi-agent evaluation reports to MongoDB.
+    Works with both the old schema (lead key) and new schema (final_decision key).
+    """
+    collection = await _get_collection()
+    if collection is None:
+        return False
+
+    # Support both old schema (lead.overall_match_score) and new schema (final_decision.final_score)
+    final_decision = agent_reports.get("final_decision", {})
+    lead_fallback = agent_reports.get("lead", {})
+    match_score = (
+        final_decision.get("final_score")
+        or lead_fallback.get("overall_match_score")
+        or 0
+    )
+
+    status = "rejected" if match_score < 60 else "ai_reviewed"
+    
+    update_doc = {
+        "agent_reports": agent_reports,
+        "match_score": match_score,
+        "status": status
+    }
+    
+    try:
+        await collection.update_one(
+            {"_id": candidate_id},
+            {"$set": update_doc}
+        )
+        return True
+    except Exception as e:
+        print(f"Failed to update candidate review: {e}")
+        return False
+

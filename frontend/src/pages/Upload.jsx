@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { endpoints } from '../api';
 
 export default function Upload() {
   const [dragActive, setDragActive] = useState(false);
@@ -79,7 +80,7 @@ export default function Upload() {
 
     try {
       // Assuming FastAPI runs on 8000
-      const res = await fetch('http://127.0.0.1:8000/api/upload-resume', {
+      const res = await fetch(endpoints.uploadResume, {
         method: 'POST',
         body: formData,
       });

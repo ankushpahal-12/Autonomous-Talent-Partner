@@ -1,3 +1,4 @@
+import sys
 import os
 from langchain_chroma import Chroma
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
@@ -10,18 +11,21 @@ class VectorDatabase:
 
 vector_db_instance = VectorDatabase()
 
+from ..core.config import settings
+
 def init_vector_db():
     """Initializes the Chroma vector store on startup."""
-    print("Initialize Vector Database connection...")
+    sys.stderr.write("Initialize Vector Database connection...\n")
     try:
-        if not os.getenv("GOOGLE_API_KEY") or "your_google_ai_key_here" in os.getenv("GOOGLE_API_KEY"):
-            print("VectorDB init skipped: Invalid GOOGLE_API_KEY.")
+        api_key = settings.GOOGLE_API_KEY
+        if not api_key or "your_google_ai_key_here" in api_key:
+            sys.stderr.write("VectorDB init skipped: Invalid GOOGLE_API_KEY.\n")
             return
 
-        embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        embeddings = GoogleGenerativeAIEmbeddings(api_key=api_key, model="models/gemini-embedding-001")
         
-        # Define directory relative to the backend base folder
-        chroma_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "chroma")
+        # Use centralized path
+        chroma_path = settings.CHROMA_PATH
         os.makedirs(chroma_path, exist_ok=True)
         
         vector_db_instance.store = Chroma(
@@ -29,9 +33,9 @@ def init_vector_db():
             embedding_function=embeddings,
             persist_directory=chroma_path
         )
-        print(f"Successfully initialized Vector Database at {chroma_path}")
+        sys.stderr.write(f"Successfully initialized Vector Database at {chroma_path}\n")
     except Exception as e:
-        print(f"Failed to initialize Vector DB: {e}")
+        sys.stderr.write(f"Failed to initialize Vector DB: {e}\n")
 
 def get_vector_db():
     """Dependency hook to retrieve the current Vector DB store."""
@@ -39,4 +43,4 @@ def get_vector_db():
 
 def shutdown_vector_db():
     """Gracefully shuts down resources if needed (Chroma mostly handles this natively)."""
-    print("Vector Database connection closed.")
+    sys.stderr.write("Vector Database connection closed.\n")

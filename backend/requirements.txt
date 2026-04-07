@@ -4,6 +4,7 @@
 crewai
 langchain
 langgraph
+langchain-neo4j
 
 # RAG & Embeddings
 chromadb
@@ -13,6 +14,9 @@ langchain-community
 langchain-google-genai
 langchain-chroma
 pypdf
+
+# Knowledge Graph (Databases)
+neo4j
 
 # UI
 streamlit
@@ -25,3 +29,4 @@ mcp
 fastapi
 motor
 python-multipart
+python-docx

@@ -8,20 +8,21 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# We will store Chroma DB locally in the backend/data directory
-CHROMA_PERSIST_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "chroma")
+from app.core.config import settings
 
-def get_vector_store():
-    """Initializes and returns the Chroma vector store instance."""
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+def get_vector_store(collection_name="candidates"):
+    """Initializes and returns the Chroma vector store instance using centralized settings."""
+    api_key = settings.GOOGLE_API_KEY
+    embeddings = GoogleGenerativeAIEmbeddings(api_key=api_key, model="models/gemini-embedding-001")
     
-    # Create the directory if it doesn't exist
-    os.makedirs(CHROMA_PERSIST_DIR, exist_ok=True)
+    # Use centralized path from core config
+    chroma_path = settings.CHROMA_PATH
+    os.makedirs(chroma_path, exist_ok=True)
     
     vector_store = Chroma(
-        collection_name="candidates",
+        collection_name=collection_name,
         embedding_function=embeddings,
-        persist_directory=CHROMA_PERSIST_DIR
+        persist_directory=chroma_path
     )
     return vector_store
 
@@ -32,7 +33,7 @@ def embed_candidate_data(candidate_data: dict) -> bool:
     
     Returns True if successfully embedded.
     """
-    vector_store = get_vector_store()
+    vector_store = get_vector_store(collection_name="candidates")
     
     # 1. Prepare text to embed
     candidate_id = candidate_data.get("candidate_id", "unknown_id")
@@ -59,6 +60,22 @@ def embed_candidate_data(candidate_data: dict) -> bool:
     
     return True
 
+def embed_job_requirement(req_id: str, title: str, text: str) -> bool:
+    """
+    Embeds a job requirement document into a separate Chroma collection.
+    """
+    vector_store = get_vector_store(collection_name="job_requirements")
+    
+    metadata = {
+        "req_id": req_id,
+        "title": title
+    }
+    
+    doc = Document(page_content=text, metadata=metadata)
+    vector_store.add_documents([doc])
+    
+    return True
+
 def search_candidates_by_job_description(job_description: str, k: int = 3) -> list:
     """
     Search for top k candidates that match a given job description.
@@ -76,6 +93,50 @@ def search_candidates_by_job_description(job_description: str, k: int = 3) -> li
         })
     
     return formatted_results
+
+async def evaluate_candidate_with_rag(candidate_text: str, requirement_id: str) -> str:
+    """
+    Retrieves the job requirement context and reasons over the candidate using a LangChain RAG chain.
+    """
+    from langchain_core.prompts import PromptTemplate
+    from langchain_core.runnables import RunnablePassthrough
+    from langchain_core.output_parsers import StrOutputParser
+    from langchain_google_genai import ChatGoogleGenerativeAI
+    
+    req_vector_store = get_vector_store(collection_name="job_requirements")
+    retriever = req_vector_store.as_retriever(
+        search_kwargs={'filter': {'req_id': requirement_id}, 'k': 2}
+    )
+    
+    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.1)
+    
+    template = """You are an expert technical AI recruiter.
+    Evaluate the candidate's profile based strictly on the retrieved Job Requirement context.
+    
+    Job Requirement Context:
+    {context}
+    
+    Candidate Profile:
+    {candidate}
+    
+    Provide a detailed reasoning of whether this candidate is a good match for the job requirements.
+    Highlight matched skills and missing critical skills.
+    
+    Reasoning:"""
+    
+    prompt = PromptTemplate.from_template(template)
+    
+    def format_docs(docs):
+        return "\n\n".join(doc.page_content for doc in docs)
+    
+    rag_chain = (
+        {"context": retriever | format_docs, "candidate": RunnablePassthrough()}
+        | prompt
+        | llm
+        | StrOutputParser()
+    )
+    
+    return await rag_chain.ainvoke(candidate_text)
 
 if __name__ == "__main__":
     # Local test

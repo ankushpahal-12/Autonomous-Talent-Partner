@@ -14,7 +14,7 @@ async def save_file_to_gridfs(file_content: bytes, filename: str) -> str:
     if fs is None:
         raise Exception("Failed to connect to GridFS bucket.")
         
-    grid_in = await fs.open_upload_stream(filename)
+    grid_in = fs.open_upload_stream(filename)
     await grid_in.write(file_content)
     await grid_in.close()
     

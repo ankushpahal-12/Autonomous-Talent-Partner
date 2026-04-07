@@ -1,4 +1,5 @@
-import os
+import certifi
+import sys
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFSBucket
 from dotenv import load_dotenv
 
@@ -11,26 +12,39 @@ class Database:
 
 db_instance = Database()
 
+from ..core.config import settings
+
 def connect_to_mongo():
     """Initializes the connection to the MongoDB cluster."""
-    mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-    db_name = os.getenv("MONGO_DB_NAME", "talent_partner_db")
+    mongo_uri = settings.MONGO_URI
+    db_name = settings.DATABASE_NAME
     
     # We will fallback to attempting a connection but avoid throwing an error
     # instantly if it's missing just so the app can start up if needed.
     
     try:
         if mongo_uri and "your_google_ai_key_here" not in mongo_uri and "<password>" not in mongo_uri:
-            print("Connecting to MongoDB Cluster...")
-            db_instance.client = AsyncIOMotorClient(mongo_uri)
+            sys.stderr.write("Connecting to MongoDB Cluster...\n")
+            
+            # Standard Atlas Tuning
+            if "retryWrites" not in mongo_uri:
+                separator = "&" if "?" in mongo_uri else "?"
+                mongo_uri += f"{separator}retryWrites=true&w=majority"
+
+            db_instance.client = AsyncIOMotorClient(
+                mongo_uri, 
+                tls=True,
+                serverSelectionTimeoutMS=5000, # Fail faster if connection times out
+                tlsAllowInvalidCertificates=True # Development fallback for SSL alerts
+            )
             db_instance.db = db_instance.client[db_name]
             # Initialize GridFS bucket
             db_instance.fs = AsyncIOMotorGridFSBucket(db_instance.db)
-            print("Successfully connected to MongoDB Cluster and GridFS.")
+            sys.stderr.write("Successfully connected to MongoDB Cluster and GridFS.\n")
         else:
-            print("MongoDB Connection skipped: Using default or placeholder URI. Please update .env")
+            sys.stderr.write("MongoDB Connection skipped: Using default or placeholder URI. Please update .env\n")
     except Exception as e:
-        print(f"Failed to connect to MongoDB: {e}")
+        sys.stderr.write(f"Failed to connect to MongoDB: {e}\n")
 
 def get_mongodb():
     """Dependency hook to retrieve the database instance."""

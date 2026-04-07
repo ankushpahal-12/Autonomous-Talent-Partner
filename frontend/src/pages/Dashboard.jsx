@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { User, Mail, Send, Award, ArrowRight } from 'lucide-react';
+import { User, Mail, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { endpoints } from '../api';
 
 export default function Dashboard() {
   const [candidates, setCandidates] = useState([]);
@@ -9,7 +10,7 @@ export default function Dashboard() {
   useEffect(() => {
     async function fetchCandidates() {
       try {
-        const res = await fetch('http://127.0.0.1:8000/api/candidates');
+        const res = await fetch(endpoints.candidates);
         const data = await res.json();
         setCandidates(data);
       } catch (err) {

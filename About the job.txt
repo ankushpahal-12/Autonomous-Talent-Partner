@@ -1,0 +1,23 @@
+About the job
+Primary skills:Technology->Artificial Intelligence->Artificial Intelligence - ALL,Technology->Artificial Intelligence->Computer Vision,Technology->Data Science->Machine Learning
+
+Data collection, profiling, EDA & data preparation
+
+ AI Model development, tuning & validation
+ Visualization tools (e.g., PowerBI, tableau)
+ Present findings to business users & project management teams
+ Propose ML based solution approaches and estimates for new use cases
+ Experience in ML algorithms, NLP, GenAI based solutions
+ Supervised, Unsupervised, Reinforcement learning
+ Collaborate with data scientists and engineers to support ML model training, evaluation, and deployment.
+ Strong knowledge of Knowledge of AI services from cloud platforms Azure/AWS/GCP
+ Apply advanced MLOps practices to streamline model deployment, monitoring, and lifecycle management.
+ Good knowledge on software configuration management systems
+ Strong business acumen, strategy and cross-industry thought leadership
+ Awareness of latest technologies and Industry trends
+ Logical thinking and problem solving skills along with an ability to collaborate
+ Two or three industry domain knowledge
+ Understanding of the financial processes for various types of projects and the various pricing models available
+ Client Interfacing skills
+ Knowledge of SDLC and agile methodologies
+ Project and Team management
