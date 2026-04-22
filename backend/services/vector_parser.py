@@ -12,8 +12,7 @@ from app.core.config import settings
 
 def get_vector_store(collection_name="candidates"):
     """Initializes and returns the Chroma vector store instance using centralized settings."""
-    api_key = settings.GOOGLE_API_KEY
-    embeddings = GoogleGenerativeAIEmbeddings(api_key=api_key, model="models/gemini-embedding-001")
+    embeddings = GoogleGenerativeAIEmbeddings(api_key=settings.get_key_for_agent(12), model="models/gemini-embedding-001")
     
     # Use centralized path from core config
     chroma_path = settings.CHROMA_PATH
@@ -108,7 +107,17 @@ async def evaluate_candidate_with_rag(candidate_text: str, requirement_id: str) 
         search_kwargs={'filter': {'req_id': requirement_id}, 'k': 2}
     )
     
-    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.1)
+    key = settings.get_key_for_agent(15)  # Unique key for RAG (was 9, now 15 to avoid conflict with fairness_agent)
+    if not key:
+        import logging
+        logging.warning("RAG Evaluation Agent started without a valid API key.")
+        
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-2.5-flash", 
+        api_key=key, 
+        transport="rest",
+        temperature=0.1
+    )
     
     template = """You are an expert technical AI recruiter.
     Evaluate the candidate's profile based strictly on the retrieved Job Requirement context.
@@ -137,6 +146,42 @@ async def evaluate_candidate_with_rag(candidate_text: str, requirement_id: str) 
     )
     
     return await rag_chain.ainvoke(candidate_text)
+
+async def save_rag_evaluation(candidate_id: str, requirement_id: str, rag_reasoning: str) -> bool:
+    """
+    Saves RAG evaluation results with timestamp for full audit trail.
+    """
+    from app.database.mongodb import get_mongodb, connect_to_mongo
+    from datetime import datetime
+    
+    db = get_mongodb()
+    if db is None:
+        connect_to_mongo()
+        db = get_mongodb()
+    
+    if db is None:
+        return False
+    
+    try:
+        collection = db["candidates"]
+        update_doc = {
+            "rag_evaluation": {
+                "requirement_id": requirement_id,
+                "reasoning": rag_reasoning,
+                "evaluated_at": datetime.utcnow().isoformat()
+            }
+        }
+        
+        await collection.update_one(
+            {"_id": candidate_id},
+            {"$set": update_doc},
+            upsert=True
+        )
+        return True
+    except Exception as e:
+        import logging
+        logging.error(f"Failed to save RAG evaluation: {e}")
+        return False
 
 if __name__ == "__main__":
     # Local test

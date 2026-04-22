@@ -1,0 +1,101 @@
+{
+  "name": "Candidate Rejection - Notification",
+  "description": "Sends rejection notification to candidate and notifies HR",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [50, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "/webhooks/candidate-rejection",
+        "responseMode": "onReceived"
+      },
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extract candidate rejection data\nconst data = $input.all()[0].body;\n\nreturn [\n  {\n    candidateId: data.candidateId,\n    candidateName: data.candidateName,\n    candidateEmail: data.candidateEmail,\n    position: data.position || 'Software Engineer',\n    rejectionReason: data.rejectionReason || 'We appreciate your interest and effort in applying',\n    feedbackSummary: data.feedbackSummary || 'After careful consideration, we have decided to move forward with other candidates',\n    hrEmail: data.hrEmail || 'hr@company.com',\n    allowReapply: data.allowReapply !== false,\n    reapplyAfterMonths: data.reapplyAfterMonths || 6\n  }\n]"
+      },
+      "name": "Parse Rejection Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@company.com",
+        "toEmail": "={{ $node[\"Parse Rejection Data\"].json.candidateEmail }}",
+        "subject": "Application Update - {{ $node[\"Parse Rejection Data\"].json.position }}",
+        "emailType": "html",
+        "htmlMessage": "<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 0; }\n    .container { background-color: white; max-width: 600px; margin: 20px auto; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }\n    .header { color: #333; font-size: 24px; font-weight: bold; margin-bottom: 20px; }\n    .message { background-color: #fef3c7; padding: 15px; border-radius: 6px; border-left: 4px solid #f59e0b; margin: 20px 0; }\n    .details { background-color: #f9fafb; padding: 20px; border-radius: 6px; margin: 20px 0; }\n    .detail-item { margin: 12px 0; color: #333; }\n    .label { font-weight: bold; color: #666; }\n    .feedback { background-color: #ede9fe; padding: 15px; border-radius: 6px; border-left: 4px solid #a78bfa; margin: 20px 0; color: #333; }\n    .reapply { background-color: #e0f2fe; padding: 15px; border-radius: 6px; border-left: 4px solid #0ea5e9; margin: 20px 0; }\n    .reapply-text { color: #0369a1; font-size: 14px; }\n    .footer { color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }\n    .keep-in-touch { color: #0ea5e9; font-weight: bold; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">Application Status Update</div>\n    \n    <div class=\"message\">\n      <p style=\"margin: 0;\">Hi {{ $node[\"Parse Rejection Data\"].json.candidateName }},</p>\n    </div>\n    \n    <p style=\"color: #333; font-size: 16px; line-height: 1.6;\">\n      Thank you for your interest in the <strong>{{ $node[\"Parse Rejection Data\"].json.position }}</strong> position at our organization. We truly appreciate the time and effort you invested in the application process.\n    </p>\n    \n    <div class=\"details\">\n      <p style=\"margin-top: 0; color: #666; font-size: 14px;\">After careful review and consideration of all candidates, we have decided to move forward with other applicants who more closely match our current needs at this time.</p>\n      \n      <div class=\"detail-item\">\n        <span class=\"label\">Position Applied:</span> {{ $node[\"Parse Rejection Data\"].json.position }}\n      </div>\n      <div class=\"detail-item\">\n        <span class=\"label\">Application Status:</span> <strong style=\"color: #dc2626;\">Not Selected</strong>\n      </div>\n    </div>\n    \n    <div class=\"feedback\">\n      <p style=\"margin: 0; margin-bottom: 10px;\"><strong>Feedback Summary:</strong></p>\n      <p style=\"margin: 0; color: #333;\">{{ $node[\"Parse Rejection Data\"].json.feedbackSummary }}</p>\n    </div>\n    \n    {{ $node[\"Parse Rejection Data\"].json.allowReapply ? `\n    <div class=\"reapply\">\n      <p style=\"margin: 0; margin-bottom: 8px;\"><strong>📅 Future Opportunities:</strong></p>\n      <p class=\"reapply-text\" style=\"margin: 0;\">You are welcome to reapply for this or other positions after {{ $node[\"Parse Rejection Data\"].json.reapplyAfterMonths }} months. We would love to see how your skills and experience grow!</p>\n    </div>\n    ` : '' }}\n    \n    <div style=\"background-color: #f0fdf4; padding: 15px; border-radius: 6px; border-left: 4px solid #10b981; margin: 20px 0;\">\n      <p style=\"margin: 0; color: #166534;\"><strong>💡 Keep Learning:</strong> We encourage you to continue developing your skills. Consider connecting with us on <span class=\"keep-in-touch\">LinkedIn</span> to stay updated on future opportunities.</p>\n    </div>\n    \n    <p style=\"color: #666; font-size: 14px; margin-top: 20px; line-height: 1.6;\">\n      If you have any questions about the feedback or your application, please don't hesitate to reach out to our HR team. We value your effort and wish you success in your career journey.\n    </p>\n    \n    <div class=\"footer\">\n      <p>Best regards,<br/><strong>Recruitment Team</strong><br/>{{ $node[\"Parse Rejection Data\"].json.position }} - Hiring Department</p>\n    </div>\n  </div>\n</body>\n</html>"
+      },
+      "name": "Send Rejection Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [650, 150]
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@company.com",
+        "toEmail": "={{ $node[\"Parse Rejection Data\"].json.hrEmail }}",
+        "subject": "Rejection Notification - {{ $node[\"Parse Rejection Data\"].json.candidateName }} ({{ $node[\"Parse Rejection Data\"].json.position }})",
+        "emailType": "html",
+        "htmlMessage": "<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; background-color: #f5f5f5; margin: 0; padding: 0; }\n    .container { background-color: white; max-width: 600px; margin: 20px auto; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }\n    .header { color: #dc2626; font-size: 24px; font-weight: bold; margin-bottom: 20px; }\n    .details { background-color: #f9fafb; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #dc2626; }\n    .detail-item { margin: 10px 0; color: #333; }\n    .label { font-weight: bold; color: #666; }\n    .footer { color: #666; font-size: 12px; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">📋 Rejection Notification - HR Record</div>\n    \n    <p>The following candidate has been rejected and notification email has been sent:</p>\n    \n    <div class=\"details\">\n      <div class=\"detail-item\">\n        <span class=\"label\">Candidate Name:</span> {{ $node[\"Parse Rejection Data\"].json.candidateName }}\n      </div>\n      <div class=\"detail-item\">\n        <span class=\"label\">Position:</span> {{ $node[\"Parse Rejection Data\"].json.position }}\n      </div>\n      <div class=\"detail-item\">\n        <span class=\"label\">Email:</span> {{ $node[\"Parse Rejection Data\"].json.candidateEmail }}\n      </div>\n      <div class=\"detail-item\">\n        <span class=\"label\">Candidate ID:</span> {{ $node[\"Parse Rejection Data\"].json.candidateId }}\n      </div>\n      <div class=\"detail-item\">\n        <span class=\"label\">Decision:</span> <strong style=\"color: #dc2626;\">REJECTED</strong>\n      </div>\n      <div class=\"detail-item\">\n        <span class=\"label\">Reason:</span> {{ $node[\"Parse Rejection Data\"].json.rejectionReason }}\n      </div>\n      {{ $node[\"Parse Rejection Data\"].json.allowReapply ? `\n      <div class=\"detail-item\">\n        <span class=\"label\">Can Reapply After:</span> {{ $node[\"Parse Rejection Data\"].json.reapplyAfterMonths }} months\n      </div>\n      ` : `\n      <div class=\"detail-item\">\n        <span class=\"label\">Can Reapply:</span> No\n      </div>\n      ` }}\n    </div>\n    \n    <p style=\"color: #666; font-size: 14px;\">\n      <strong>Status:</strong> <span style=\"color: #10b981;\">✓ Rejection email sent to candidate</span>\n    </p>\n    \n    <div class=\"footer\">\n      <p>This is an automated message from the Recruitment System.</p>\n    </div>\n  </div>\n</body>\n</html>"
+      },
+      "name": "Send HR Rejection Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/api/v1/candidates/{{ $node[\"Parse Rejection Data\"].json.candidateId }}/rejection",
+        "authentication": "none",
+        "bodyType": "json",
+        "body": "{\"rejection_reason\": \"={{ $node[\\\"Parse Rejection Data\\\"].json.rejectionReason }}\", \"feedback_summary\": \"={{ $node[\\\"Parse Rejection Data\\\"].json.feedbackSummary }}\", \"hr_email\": \"={{ $node[\\\"Parse Rejection Data\\\"].json.hrEmail }}\", \"allow_reapply\": \"={{ $node[\\\"Parse Rejection Data\\\"].json.allowReapply }}\", \"reapply_after_months\": \"={{ $node[\\\"Parse Rejection Data\\\"].json.reapplyAfterMonths }}\"}"
+      },
+      "name": "Update Candidate Rejection Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "saveDataToFile": true,
+        "fileName": "rejection_{{ $node[\"Parse Rejection Data\"].json.candidateId }}_{{ new Date().toISOString() }}.json"
+      },
+      "name": "Log Rejection Details",
+      "type": "n8n-nodes-base.writeFile",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Start": { "main": [[{ "node": "Webhook Trigger", "type": "main", "index": 0 }]] },
+    "Webhook Trigger": { "main": [[{ "node": "Parse Rejection Data", "type": "main", "index": 0 }]] },
+    "Parse Rejection Data": {
+      "main": [
+        [
+          { "node": "Send Rejection Email", "type": "main", "index": 0 },
+          { "node": "Send HR Rejection Notification", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Send Rejection Email": { "main": [[{ "node": "Update Candidate Rejection Status", "type": "main", "index": 0 }]] },
+    "Send HR Rejection Notification": { "main": [[{ "node": "Update Candidate Rejection Status", "type": "main", "index": 0 }]] },
+    "Update Candidate Rejection Status": { "main": [[{ "node": "Log Rejection Details", "type": "main", "index": 0 }]] }
+  },
+  "active": true,
+  "settings": {},
+  "staticDataEnabled": true,
+  "versionId": "1.0.0"
+}

@@ -1,0 +1,242 @@
+{
+  "name": "Candidate Acceptance - AI Agent Workflow",
+  "description": "Send candidate acceptance with AI-generated personalized email and calendar event creation",
+  "tags": ["recruitment", "ai-agent", "gmail", "google-calendar"],
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [50, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "/candidate-acceptance",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "name": "Webhook - Candidate Acceptance",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "candidate-acceptance-webhook"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extract and validate candidate data from webhook\nconst data = $input.first().body;\n\nif (!data.candidateName || !data.candidateEmail) {\n  throw new Error('Missing required fields: candidateName and candidateEmail');\n}\n\nreturn {\n  candidateName: data.candidateName,\n  candidateEmail: data.candidateEmail,\n  position: data.position || 'Software Engineer',\n  company: data.company || 'Our Company',\n  interviewDate: data.interviewDate || new Date().toISOString().split('T')[0],\n  interviewTime: data.interviewTime || '10:00 AM',\n  timezone: data.timezone || 'EST',\n  hrEmail: data.hrEmail || 'hr@company.com'\n};"
+      },
+      "name": "Parse Webhook Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "model": "Webhook - Candidate Acceptance",
+        "options": {
+          "systemMessage": "You are a professional HR assistant. Your task is to create a warm, professional acceptance email for a candidate. The email should congratulate them, inform them about the interview, and provide all necessary details. Keep it concise but friendly.",
+          "temperature": 0.7
+        }
+      },
+      "name": "AI Agent - Generate Email",
+      "type": "n8n-nodes-base.openaiChatModel",
+      "typeVersion": 1,
+      "position": [650, 150],
+      "credentials": {
+          "googleGenerativeAiApi": {
+            "id": "google_gemini_api",
+            "name": "Google Generative AI"
+          }
+        },
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "functionCode": "// Generate AI prompt for email content\nconst data = $input.first().json;\n\nconst prompt = `\nCreate a professional and friendly acceptance email for the following candidate:\n\nCandidate Name: ${data.candidateName}\nPosition: ${data.position}\nCompany: ${data.company}\nInterview Date: ${data.interviewDate}\nInterview Time: ${data.interviewTime} ${data.timezone}\n\nPlease include:\n1. Congratulations on advancing in the interview process\n2. Interview details (date, time, timezone)\n3. A brief note about what to expect\n4. Contact information for questions\n5. Professional closing\n\nMake it warm, personal, and professional.`;\n\nreturn {\n  prompt: prompt,\n  candidateName: data.candidateName,\n  candidateEmail: data.candidateEmail,\n  position: data.position,\n  company: data.company,\n  interviewDate: data.interviewDate,\n  interviewTime: data.interviewTime,\n  timezone: data.timezone,\n  hrEmail: data.hrEmail\n};"
+      },
+      "name": "Generate Email Prompt",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 150]
+    },
+    {
+      "parameters": {
+        "model": "gemini-pro",
+        "options": {
+          "temperature": 0.7
+        },
+        "messages": {
+          "messageValues": [
+            {
+              "content": "={{ $node[\"Generate Email Prompt\"].json.prompt }}",
+              "role": "user"
+            }
+          ]
+        }
+      },
+      "name": "AI Agent - Email Generation",
+      "type": "n8n-nodes-base.openaiChatModel",
+      "typeVersion": 1,
+      "position": [650, 150],
+      "credentials": {
+        "googleGenerativeAiApi": "google_gemini_api"
+      }
+    },
+    {
+      "parameters": {
+        "service": "gmail",
+        "operation": "send",
+        "fromEmail": "noreply@company.com",
+        "toEmail": "={{ $node[\"Parse Webhook Data\"].json.candidateEmail }}",
+        "subject": "Congratulations! Interview Confirmed - {{ $node[\"Parse Webhook Data\"].json.position }}",
+        "emailType": "html",
+        "htmlMessage": "<html><head><style>body{font-family:Arial,sans-serif;background-color:#f5f5f5;margin:0;padding:0}.container{background-color:white;max-width:600px;margin:20px auto;padding:30px;border-radius:8px;box-shadow:0 2px 4px rgba(0,0,0,0.1)}.header{color:#0ea5e9;font-size:24px;font-weight:bold;margin-bottom:20px}.greeting{color:#333;font-size:16px;margin-bottom:20px;line-height:1.6}.details{background-color:#f9fafb;padding:20px;border-radius:6px;margin:20px 0;border-left:4px solid #0ea5e9}.detail-item{margin:12px 0;color:#333}.label{font-weight:bold;color:#0ea5e9}.button{display:inline-block;background-color:#0ea5e9;color:white;padding:12px 30px;text-decoration:none;border-radius:6px;margin:20px 0;font-weight:bold}.button:hover{background-color:#0284c7}.footer{color:#666;font-size:12px;margin-top:30px;border-top:1px solid #eee;padding-top:20px}</style></head><body><div class=\"container\"><div class=\"header\">Congratulations!</div><div class=\"greeting\"><p>Hi {{ $node[\"Parse Webhook Data\"].json.candidateName }},</p><p>We are excited to inform you that you have advanced to the next stage of our interview process for the <strong>{{ $node[\"Parse Webhook Data\"].json.position }}</strong> role at {{ $node[\"Parse Webhook Data\"].json.company }}.</p></div><div class=\"details\"><div class=\"detail-item\"><span class=\"label\">Position:</span> {{ $node[\"Parse Webhook Data\"].json.position }}</div><div class=\"detail-item\"><span class=\"label\">Interview Date:</span> {{ $node[\"Parse Webhook Data\"].json.interviewDate }}</div><div class=\"detail-item\"><span class=\"label\">Interview Time:</span> {{ $node[\"Parse Webhook Data\"].json.interviewTime }} {{ $node[\"Parse Webhook Data\"].json.timezone }}</div><div class=\"detail-item\"><span class=\"label\">Duration:</span> 60 minutes</div></div><p>Please ensure your microphone and camera are working properly. You will receive a calendar invitation separately with the meeting link.</p><p>If you have any questions or need to reschedule, please don't hesitate to reach out.</p><p>We look forward to speaking with you soon!</p><div class=\"footer\"><p>Best regards,<br/><strong>Recruitment Team</strong><br/>{{ $node[\"Parse Webhook Data\"].json.company }}</p></div></div></body></html>"
+      },
+      "name": "Send Email via Gmail",
+      "type": "n8n-nodes-base.sendGrid",
+      "typeVersion": 1,
+      "position": [850, 150],
+      "credentials": {
+        "gmailApi": "gmail_api"
+      }
+    },
+    {
+      "parameters": {
+        "service": "googleCalendar",
+        "operation": "create",
+        "calendarId": "primary",
+        "title": "Interview: {{ $node[\"Parse Webhook Data\"].json.candidateName }} - {{ $node[\"Parse Webhook Data\"].json.position }}",
+        "description": "Interview for {{ $node[\"Parse Webhook Data\"].json.position }} position\nCandidate: {{ $node[\"Parse Webhook Data\"].json.candidateName }}\nEmail: {{ $node[\"Parse Webhook Data\"].json.candidateEmail }}\n\nPlease send interview link to candidate via email.",
+        "startDate": "={{ $node[\"Parse Webhook Data\"].json.interviewDate }}",
+        "startTime": "={{ $node[\"Parse Webhook Data\"].json.interviewTime }}",
+        "endTime": "={{ new Date(new Date($node[\"Parse Webhook Data\"].json.interviewDate + 'T' + $node[\"Parse Webhook Data\"].json.interviewTime).getTime() + 60*60000).toLocaleTimeString() }}",
+        "attendees": "={{ $node[\"Parse Webhook Data\"].json.candidateEmail + ',' + $node[\"Parse Webhook Data\"].json.hrEmail }}",
+        "timezone": "={{ $node[\"Parse Webhook Data\"].json.timezone }}"
+      },
+      "name": "Create Calendar Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [850, 400],
+      "credentials": {
+        "googleCalendarApi": "google_calendar_api"
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8000/api/v1/candidates/acceptance-notification",
+        "authentication": "none",
+        "bodyType": "json",
+        "body": "{\"candidate_name\": \"={{ $node[\\\"Parse Webhook Data\\\"].json.candidateName }}\", \"candidate_email\": \"={{ $node[\\\"Parse Webhook Data\\\"].json.candidateEmail }}\", \"position\": \"={{ $node[\\\"Parse Webhook Data\\\"].json.position }}\", \"interview_date\": \"={{ $node[\\\"Parse Webhook Data\\\"].json.interviewDate }}\", \"interview_time\": \"={{ $node[\\\"Parse Webhook Data\\\"].json.interviewTime }}\", \"timezone\": \"={{ $node[\\\"Parse Webhook Data\\\"].json.timezone }}\", \"status\": \"acceptance_sent\"}"
+      },
+      "name": "Update Backend Database",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {},
+      "name": "Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Webhook - Candidate Acceptance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Candidate Acceptance": {
+      "main": [
+        [
+          {
+            "node": "Parse Webhook Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Webhook Data": {
+      "main": [
+        [
+          {
+            "node": "Generate Email Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Email Prompt": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - Email Generation",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Email via Gmail",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Calendar Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email via Gmail": {
+      "main": [
+        [
+          {
+            "node": "Update Backend Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Calendar Event": {
+      "main": [
+        [
+          {
+            "node": "Update Backend Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Backend Database": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticDataEnabled": true,
+  "versionId": "2.0.0"
+}

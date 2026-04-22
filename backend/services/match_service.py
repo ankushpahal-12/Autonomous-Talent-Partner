@@ -4,6 +4,9 @@ from services.vector_parser import search_candidates_by_job_description
 from services.db_service import get_candidate_by_id
 from services.neo4j_service import kg_service
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 async def extract_skills_from_job(job_text: str) -> list:
     """
@@ -12,7 +15,7 @@ async def extract_skills_from_job(job_text: str) -> list:
     try:
         llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
-            api_key=settings.GOOGLE_API_KEY,
+            api_key=settings.get_key_for_agent(11),
             temperature=0.0
         )
         
@@ -35,8 +38,14 @@ async def extract_skills_from_job(job_text: str) -> list:
 async def find_top_candidates_for_job(job_text: str, job_id: str = None, k: int = 5):
     """
     Retrieves and ranks the top k candidates for a job description using 
-    a hybrid of Chroma semantic search and Knowledge Graph skill mapping.
-    If job_id is provided, it uses the advanced graph-traversal matching.
+    a hybrid of Chroma semantic search, Knowledge Graph skill mapping, and Risk Assessment.
+    
+    Scoring Methodology:
+    - Chroma Semantic Match: 40% weight (vector similarity)
+    - Knowledge Graph Match: 35% weight (skill relationships via Neo4j)
+    - Risk Assessment: 25% weight (inverse of risk score for penalization)
+    
+    If job_id is provided, uses advanced graph-traversal matching.
     """
     # 1. Semantic Search (Retrieval)
     results = search_candidates_by_job_description(job_text, k=k)
@@ -49,12 +58,11 @@ async def find_top_candidates_for_job(job_text: str, job_id: str = None, k: int 
     if job_id:
         graph_matches = kg_service.find_graph_candidates_for_job(job_id, limit=k*2)
         for gm in graph_matches:
-            # We'll normalize the graph score (e.g. 5 skills = score 5 = 100%)
             max_possible_score = max(len(required_skills), 1)
             normalized_score = min((gm["graph_score"] / max_possible_score) * 100, 100)
             graph_scores[gm["candidate_id"]] = normalized_score
     
-    # 4. Re-ranking with Knowledge Graph (Refinement)
+    # 4. Re-ranking with Knowledge Graph & Risk Assessment (Refinement)
     final_matches = []
     for res in results:
         candidate_id = res["candidate_id"]
@@ -66,29 +74,58 @@ async def find_top_candidates_for_job(job_text: str, job_id: str = None, k: int 
         parsed_data = candidate.get("parsed_data", {})
         skills_provided = parsed_data.get("skills", [])
         
-        # Calculate Hybrid Score
-        # Chroma score (distance) normalized to 0-100 (assume distance < 1 for match)
+        # Calculate baseline scores
         chroma_score = min(round((1 - res["score"]) * 100, 1), 100) if res["score"] < 1 else 60
         
-        # Knowledge Graph Score
         if job_id and candidate_id in graph_scores:
             kg_score = graph_scores[candidate_id]
         else:
             kg_score = kg_service.calculate_match_score(required_skills, skills_provided)
         
-        # Combine (weighted 40% Chroma, 60% KG for accuracy)
-        hybrid_match_percentage = round((0.4 * chroma_score) + (0.6 * kg_score), 1)
+        # RISK ASSESSMENT SCORING (v2.0)
+        # Retrieve comprehensive scoring data if available
+        risk_score = 0.5  # Default neutral risk
+        final_decision_data = candidate.get("final_score_data", {})
+        risk_assessment = candidate.get("risk_assessment", {})
+        
+        if risk_assessment:
+            risk_score = risk_assessment.get("overall_risk_score", 0.5)
+        elif final_decision_data:
+            # Fallback: use risk from final score data
+            risk_score = final_decision_data.get("risk_score", 0.5)
+        
+        # Risk penalty: high risk reduces match score
+        # Score = Base * (1 - risk_weight * risk_score)
+        risk_penalty = 1 - (0.25 * risk_score)  # Max 25% deduction for risk
+        
+        # Hybrid Match Score with Risk Adjustment
+        # 40% Chroma, 35% KG, 25% Risk Resistance
+        hybrid_match_percentage = round(
+            (0.40 * chroma_score) + (0.35 * kg_score) + (0.25 * (100 * risk_penalty)),
+            1
+        )
+        
+        # Get candidate status and decision
+        final_status = candidate.get("final_status", "pending")
+        final_decision = final_decision_data.get("decision", "unknown") if final_decision_data else "unknown"
+        final_score = final_decision_data.get("final_score", 0) if final_decision_data else 0
         
         match_data = {
             "id": candidate_id,
             "name": res["name"],
             "score": res["score"],
             "match_percentage": hybrid_match_percentage,
-            "status": candidate.get("status", "pending"),
-            "final_decision": candidate.get("final_decision", "none"),
-            "matched_skills": list(set(required_skills) & set(skills_provided))
+            "status": final_status,
+            "final_decision": final_decision,
+            "final_score": final_score,
+            "risk_score": round(risk_score, 2),
+            "matched_skills": list(set(required_skills) & set(skills_provided)),
+            "chroma_score": chroma_score,
+            "kg_score": kg_score,
+            "risk_adjusted": risk_penalty < 1.0
         }
         
         final_matches.append(match_data)
+        logger.info(f"Matched {candidate_id}: match={hybrid_match_percentage}%, risk={risk_score:.2f}")
         
     return sorted(final_matches, key=lambda x: x["match_percentage"], reverse=True)

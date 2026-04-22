@@ -85,6 +85,20 @@ async def get_all_requirements():
         requirements.append(doc)
     return requirements
 
+async def get_requirement_by_id(requirement_id: str) -> dict:
+    """Retrieve a specific requirement with all metadata."""
+    collection = await _get_requirements_collection()
+    if collection is None:
+        return {}
+    
+    try:
+        doc = await collection.find_one({"_id": requirement_id})
+        return doc if doc else {}
+    except Exception as e:
+        import sys
+        sys.stderr.write(f"Failed to get requirement: {e}\n")
+        return {}
+
 async def delete_requirement(requirement_id: str) -> bool:
     """Removes a job requirement from MongoDB by its ID."""
     collection = await _get_requirements_collection()

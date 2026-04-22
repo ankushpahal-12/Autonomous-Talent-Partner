@@ -17,8 +17,8 @@ def init_vector_db():
     """Initializes the Chroma vector store on startup."""
     sys.stderr.write("Initialize Vector Database connection...\n")
     try:
-        api_key = settings.GOOGLE_API_KEY
-        if not api_key or "your_google_ai_key_here" in api_key:
+        api_key = settings.get_key_for_agent(12)
+        if not api_key:
             sys.stderr.write("VectorDB init skipped: Invalid GOOGLE_API_KEY.\n")
             return
 

@@ -1,0 +1,288 @@
+/* Comprehensive Responsive & Animation Styles */
+
+/* Additional Keyframe Animations */
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideOutDown {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(20px); }
+}
+
+@keyframes slideInLeftSmall {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRightSmall {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes expandWidth {
+  from { width: 0; opacity: 0; }
+  to { width: 100%; opacity: 1; }
+}
+
+@keyframes shrinkWidth {
+  from { width: 100%; opacity: 1; }
+  to { width: 0; opacity: 0; }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Smooth transition classes */
+.smooth-transition {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.instant-transition {
+  transition: none;
+}
+
+/* Hover effects  */
+.hover-scale {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+.hover-glow {
+  transition: box-shadow 0.3s ease;
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
+}
+
+/* Responsive Animations for Mobile */
+@media (max-width: 768px) {
+  /* Two-column layout becomes single column */
+  [style*="gridTemplateColumns: '1fr 1fr'"], 
+  [style*='gridTemplateColumns: "1fr 1fr"'] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Stack vertically on smaller screens */
+  [style*="display: 'grid'"][style*="gridTemplateColumns: '1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Reduce padding on mobile */
+  [class*="glass-panel"] {
+    padding: 20px !important;
+  }
+
+  /* Full-width buttons on mobile */
+  button {
+    transition: all 0.2s ease;
+  }
+
+  button:active {
+    transform: scale(0.98);
+  }
+
+  /* Responsive text sizes */
+  h1 {
+    font-size: 1.5rem !important;
+  }
+
+  h2 {
+    font-size: 1.25rem !important;
+  }
+
+  h3 {
+    font-size: 1.1rem !important;
+  }
+
+  /* Touch-friendly sizes */
+  input, textarea, select {
+    font-size: 16px !important; /* Prevent iOS zoom */
+    padding: 12px;
+  }
+
+  /* Flexible grid layouts */
+  [style*="repeat(auto"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Stack form elements */
+  [style*="display: 'flex'"][style*="gap"] {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Smaller header on mobile */
+  h1 {
+    font-size: 1.3rem !important;
+    margin-bottom: 8px !important;
+  }
+
+  /* Compact glass panels */
+  [class*="glass-panel"], [class*="glass-card"] {
+    padding: 16px !important;
+    border-radius: 12px !important;
+  }
+
+  /* Efficient spacing */
+  header {
+    margin-bottom: 16px !important;
+  }
+
+  /* Smaller icons on mobile */
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Adjust button sizes */
+  button {
+    padding: 10px 12px !important;
+    font-size: 0.9rem !important;
+  }
+
+  /* Responsive table fallback */
+  table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  thead {
+    display: none;
+  }
+
+  tbody, tr, td {
+    display: block;
+    width: 100%;
+  }
+
+  tr {
+    margin-bottom: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    padding: 8px;
+  }
+
+  td {
+    padding: 8px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Very compact for small phones */
+  h1 {
+    font-size: 1.2rem !important;
+  }
+
+ p.subtitle {
+    font-size: 0.85rem !important;
+  }
+
+  [class*="glass-panel"], [class*="glass-card"] {
+    padding: 12px !important;
+    margin: 0;
+    border-radius: 8px !important;
+  }
+
+  /* Stack everything */
+  [style*="display: 'flex'"], [style*='display: "flex"'] {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  /* Minimize button */
+  button {
+    min-height: 44px; /* Touch-friendly */
+    width: 100%;
+  }
+
+  /* Compact inputs */
+  input, textarea {
+    padding: 10px !important;
+    font-size: 14px !important;
+  }
+
+  /* Full-width modals */
+  [style*="maxWidth: '900px'"] {
+    max-width: 95vw !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Hide non-essential details */
+  .detail-view {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Animation States */
+.animate-in {
+  animation: slideInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-out {
+  animation: slideOutDown 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animate-spin {
+  animation: spin-slow 1s linear infinite;
+}
+
+.animate-pulse {
+  animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Transition Utilities */
+.transition-fast { transition: all 0.15s ease-out; }
+.transition-normal { transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.transition-slow { transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+
+/* Focus states for accessibility */
+button:focus, input:focus, textarea:focus, select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  transition: outline 0.2s ease;
+}
+
+/* Link hover effects */
+a {
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: var(--accent);
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Transform acceleration for performance */
+.will-animate {
+  will-change: transform;
+  transform: translate3d(0, 0, 0);
+}
+
+/* Prevent layout shift */
+body, html {
+  scrollbar-gutter: stable;
+}

@@ -1,0 +1,237 @@
+{
+  "name": "N8N Webhook Configuration Guide",
+  "description": "Complete webhook payload structure for candidate acceptance and rejection workflows",
+  "webhooks": {
+    "candidate_acceptance": {
+      "url": "http://localhost:5678/webhook/candidate-acceptance",
+      "method": "POST",
+      "description": "Triggered when a candidate is selected/accepted for an interview",
+      "payload": {
+        "candidateId": "unique_candidate_id",
+        "candidateName": "John Doe",
+        "candidateEmail": "john.doe@example.com",
+        "position": "Senior Software Engineer",
+        "interviewDate": "2026-04-20",
+        "interviewTime": "2:00 PM",
+        "interviewDuration": 60,
+        "timezone": "EST",
+        "meetingLink": "https://meet.google.com/abc-defg-hij",
+        "interviewerName": "Jane Smith",
+        "hrEmail": "hr@company.com"
+      },
+      "example_curl": "curl -X POST http://localhost:5678/webhook/candidate-acceptance \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"candidateId\": \"cand_12345\",\n    \"candidateName\": \"John Doe\",\n    \"candidateEmail\": \"john.doe@example.com\",\n    \"position\": \"Senior Software Engineer\",\n    \"interviewDate\": \"2026-04-20\",\n    \"interviewTime\": \"2:00 PM\",\n    \"interviewDuration\": 60,\n    \"timezone\": \"EST\",\n    \"meetingLink\": \"https://meet.google.com/abc-defg-hij\",\n    \"interviewerName\": \"Jane Smith\",\n    \"hrEmail\": \"hr@company.com\"\n  }'"
+    },
+    "candidate_rejection": {
+      "url": "http://localhost:5678/webhook/candidate-rejection",
+      "method": "POST",
+      "description": "Triggered when a candidate is rejected",
+      "payload": {
+        "candidateId": "unique_candidate_id",
+        "candidateName": "Jane Smith",
+        "candidateEmail": "jane.smith@example.com",
+        "position": "Product Manager",
+        "rejectionReason": "Did not meet technical requirements",
+        "feedbackSummary": "Strong communication skills but lacking required technical background in machine learning",
+        "hrEmail": "hr@company.com",
+        "allowReapply": true,
+        "reapplyAfterMonths": 6
+      },
+      "example_curl": "curl -X POST http://localhost:5678/webhook/candidate-rejection \\\n  -H 'Content-Type: application/json' \\\n  -d '{\n    \"candidateId\": \"cand_67890\",\n    \"candidateName\": \"Jane Smith\",\n    \"candidateEmail\": \"jane.smith@example.com\",\n    \"position\": \"Product Manager\",\n    \"rejectionReason\": \"Did not meet technical requirements\",\n    \"feedbackSummary\": \"Strong communication skills but lacking required technical background\",\n    \"hrEmail\": \"hr@company.com\",\n    \"allowReapply\": true,\n    \"reapplyAfterMonths\": 6\n  }'"
+      }
+    }
+  },
+  "workflow_features": {
+    "candidate_acceptance_workflow": {
+      "name": "Candidate Acceptance - Email & Meeting Link",
+      "triggers": ["Manual Execution", "API Webhook", "Scheduled Trigger"],
+      "steps": [
+        "1. Receive webhook with candidate and interview details",
+        "2. Parse and validate candidate data",
+        "3. Generate professional acceptance email to candidate",
+        "4. Send HR notification email with full interview details",
+        "5. Update candidate status in database (interview_scheduled)",
+        "6. Log interview details for audit trail"
+      ],
+      "emails_sent": [
+        {
+          "recipient": "Candidate",
+          "subject": "Interview Scheduled - [Position Name]",
+          "content": "Professional html email with interview details, meeting link, and join button"
+        },
+        {
+          "recipient": "HR Team",
+          "subject": "Interview Confirmation - [Candidate Name] ([Position])",
+          "content": "HR notification with complete interview details for coordination"
+        }
+      ],
+      "data_updated": {
+        "table": "candidates",
+        "fields": {
+          "status": "interview_scheduled",
+          "interview_date": "from_payload",
+          "interview_time": "from_payload",
+          "meeting_link": "from_payload",
+          "notification_sent": true,
+          "notification_timestamp": "current_datetime"
+        }
+      }
+    },
+    "candidate_rejection_workflow": {
+      "name": "Candidate Rejection - Notification",
+      "triggers": ["Manual Execution", "API Webhook", "Scheduled Trigger"],
+      "steps": [
+        "1. Receive webhook with rejection details",
+        "2. Parse rejection data and feedback",
+        "3. Generate professional rejection email to candidate",
+        "4. Send HR notification with rejection record",
+        "5. Update candidate status in database (rejected)",
+        "6. Log rejection details for audit trail"
+      ],
+      "emails_sent": [
+        {
+          "recipient": "Candidate",
+          "subject": "Application Update - [Position Name]",
+          "content": "Professional rejection email with feedback, encouragement to reapply, and LinkedIn touch points"
+        },
+        {
+          "recipient": "HR Team",
+          "subject": "Rejection Notification - [Candidate Name] ([Position])",
+          "content": "HR record of rejection with reason, feedback, and reapply eligibility"
+        }
+      ],
+      "data_updated": {
+        "table": "candidates",
+        "fields": {
+          "status": "rejected",
+          "rejection_reason": "from_payload",
+          "feedback_summary": "from_payload",
+          "allow_reapply": "from_payload",
+          "reapply_after_months": "from_payload",
+          "notification_sent": true,
+          "notification_timestamp": "current_datetime"
+        }
+      }
+    }
+  },
+  "backend_integration": {
+    "endpoint_acceptance": {
+      "method": "POST",
+      "url": "/api/v1/candidates/{candidateId}/interview-scheduled",
+      "body": {
+        "candidateId": "string",
+        "status": "interview_scheduled",
+        "interviewDate": "YYYY-MM-DD",
+        "interviewTime": "HH:MM",
+        "meetingLink": "url",
+        "notificationSent": true,
+        "notificationTimestamp": "ISO8601"
+      },
+      "response": {
+        "success": true,
+        "message": "Candidate interview scheduled successfully",
+        "data": {
+          "candidateId": "string",
+          "status": "interview_scheduled",
+          "updatedAt": "ISO8601"
+        }
+      }
+    },
+    "endpoint_rejection": {
+      "method": "POST",
+      "url": "/api/v1/candidates/{candidateId}/rejection",
+      "body": {
+        "candidateId": "string",
+        "status": "rejected",
+        "rejectionReason": "string",
+        "feedbackSummary": "string",
+        "allowReapply": true,
+        "reapplyAfterMonths": 6,
+        "notificationSent": true,
+        "notificationTimestamp": "ISO8601"
+      },
+      "response": {
+        "success": true,
+        "message": "Candidate rejection recorded successfully",
+        "data": {
+          "candidateId": "string",
+          "status": "rejected",
+          "updatedAt": "ISO8601"
+        }
+      }
+    }
+  },
+  "email_templates": {
+    "acceptance_email_variables": {
+      "candidateName": "The candidate's full name",
+      "position": "The position they applied for",
+      "interviewDate": "The scheduled interview date",
+      "interviewTime": "The scheduled interview time",
+      "timezone": "Candidate's timezone",
+      "interviewDuration": "Duration in minutes",
+      "meetingLink": "Direct link to video conference",
+      "interviewerName": "Name of the interviewer/hiring manager"
+    },
+    "rejection_email_variables": {
+      "candidateName": "The candidate's full name",
+      "position": "The position they applied for",
+      "rejectionReason": "Brief reason for rejection",
+      "feedbackSummary": "Detailed feedback on their application",
+      "allowReapply": "Boolean - can they reapply",
+      "reapplyAfterMonths": "Number of months before reapply eligibility"
+    }
+  },
+  "testing_guide": {
+    "test_acceptance": {
+      "description": "Test the acceptance workflow",
+      "method": "POST",
+      "url": "http://localhost:5678/webhook/candidate-acceptance",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "candidateId": "test_cand_001",
+        "candidateName": "Test Candidate",
+        "candidateEmail": "test@example.com",
+        "position": "Test Position",
+        "interviewDate": "2026-04-25",
+        "interviewTime": "10:00 AM",
+        "interviewDuration": 45,
+        "timezone": "PST",
+        "meetingLink": "https://meet.google.com/test-link",
+        "interviewerName": "Test Interviewer",
+        "hrEmail": "test-hr@example.com"
+      }
+    },
+    "test_rejection": {
+      "description": "Test the rejection workflow",
+      "method": "POST",
+      "url": "http://localhost:5678/webhook/candidate-rejection",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "candidateId": "test_cand_002",
+        "candidateName": "Test Rejection Candidate",
+        "candidateEmail": "test-rejection@example.com",
+        "position": "Test Position",
+        "rejectionReason": "Test rejection reason",
+        "feedbackSummary": "Test feedback for candidate",
+        "hrEmail": "test-hr@example.com",
+        "allowReapply": true,
+        "reapplyAfterMonths": 6
+      }
+    }
+  },
+  "production_checklist": [
+    "✓ Configure email service (Gmail, SendGrid, or custom SMTP)",
+    "✓ Set up webhook authentication tokens",
+    "✓ Configure database connection string",
+    "✓ Test email delivery with real mailbox",
+    "✓ Verify Google Meet/Zoom link generation",
+    "✓ Set up error handling and retry logic",
+    "✓ Configure audit logging",
+    "✓ Test with real candidate data",
+    "✓ Set up monitoring and alerts",
+    "✓ Document API endpoints for frontend"
+  ]
+}

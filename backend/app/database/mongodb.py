@@ -1,61 +1,56 @@
-import certifi
-import sys
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorGridFSBucket
-from dotenv import load_dotenv
+"""
+MongoDB connection module - now delegates to connection_manager for pooling and reuse.
+This module is kept for backward compatibility.
+"""
 
-load_dotenv()
+import logging
+from .connection_manager import db_manager
 
+logger = logging.getLogger(__name__)
+
+# Legacy class for backward compatibility
 class Database:
-    client: AsyncIOMotorClient = None
+    client = None
     db = None
     fs = None
 
 db_instance = Database()
 
-from ..core.config import settings
-
-def connect_to_mongo():
-    """Initializes the connection to the MongoDB cluster."""
-    mongo_uri = settings.MONGO_URI
-    db_name = settings.DATABASE_NAME
+async def connect_to_mongo():
+    """
+    Initializes the connection to the MongoDB cluster using the connection manager.
+    Now supports connection pooling and proper resource management.
+    """
+    from ..core.config import settings
     
-    # We will fallback to attempting a connection but avoid throwing an error
-    # instantly if it's missing just so the app can start up if needed.
+    success = await db_manager.connect(
+        mongo_uri=settings.MONGO_URI,
+        db_name=settings.DATABASE_NAME,
+        pool_size=settings.MONGO_POOL_SIZE,
+        timeout_ms=settings.MONGO_CONNECTION_TIMEOUT_MS
+    )
     
-    try:
-        if mongo_uri and "your_google_ai_key_here" not in mongo_uri and "<password>" not in mongo_uri:
-            sys.stderr.write("Connecting to MongoDB Cluster...\n")
-            
-            # Standard Atlas Tuning
-            if "retryWrites" not in mongo_uri:
-                separator = "&" if "?" in mongo_uri else "?"
-                mongo_uri += f"{separator}retryWrites=true&w=majority"
-
-            db_instance.client = AsyncIOMotorClient(
-                mongo_uri, 
-                tls=True,
-                serverSelectionTimeoutMS=5000, # Fail faster if connection times out
-                tlsAllowInvalidCertificates=True # Development fallback for SSL alerts
-            )
-            db_instance.db = db_instance.client[db_name]
-            # Initialize GridFS bucket
-            db_instance.fs = AsyncIOMotorGridFSBucket(db_instance.db)
-            sys.stderr.write("Successfully connected to MongoDB Cluster and GridFS.\n")
-        else:
-            sys.stderr.write("MongoDB Connection skipped: Using default or placeholder URI. Please update .env\n")
-    except Exception as e:
-        sys.stderr.write(f"Failed to connect to MongoDB: {e}\n")
+    # Update legacy class for backward compatibility
+    if success:
+        db_instance.client = db_manager._client
+        db_instance.db = db_manager.get_db()
+        db_instance.fs = db_manager.get_gridfs()
 
 def get_mongodb():
-    """Dependency hook to retrieve the database instance."""
-    return db_instance.db
+    """
+    Dependency hook to retrieve the database instance.
+    Returns the connection-pooled database from the connection manager.
+    """
+    return db_manager.get_db()
 
 def get_gridfs():
-    """Dependency hook to retrieve the GridFS instance."""
-    return db_instance.fs
+    """
+    Dependency hook to retrieve the GridFS instance.
+    Returns the GridFS bucket from the connection manager.
+    """
+    return db_manager.get_gridfs()
 
-def close_mongo_connection():
-    """Closes the active MongoDB connection."""
-    if db_instance.client is not None:
-        db_instance.client.close()
-        print("MongoDB connection gracefully closed.")
+async def close_mongo_connection():
+    """Closes the active MongoDB connection through the connection manager."""
+    await db_manager.disconnect()
+

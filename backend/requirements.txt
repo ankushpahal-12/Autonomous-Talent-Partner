@@ -2,7 +2,7 @@
 
 # Agent Frameworks
 crewai
-langchain
+langchain>=0.1.0,<0.2.0
 langgraph
 langchain-neo4j
 
@@ -30,3 +30,7 @@ fastapi
 motor
 python-multipart
 python-docx
+
+# Fuzzy Logic System
+scikit-fuzzy
+numpy<2.0

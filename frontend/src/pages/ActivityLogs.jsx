@@ -10,10 +10,16 @@ export default function ActivityLogs() {
     setLoading(true);
     try {
       const res = await fetch(endpoints.systemActivity);
+      if (!res.ok) {
+        throw new Error(`API error: ${res.status} ${res.statusText}`);
+      }
       const data = await res.json();
-      setLogs(data || []);
+      // Ensure data is an array
+      const logArray = Array.isArray(data) ? data : (data?.logs || []);
+      setLogs(logArray);
     } catch (err) {
       console.error('Failed to fetch activity logs:', err);
+      setLogs([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
