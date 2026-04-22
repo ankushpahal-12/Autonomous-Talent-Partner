@@ -1,5 +1,15 @@
 # Autonomous Talent Partner - AI-Powered Resume Screening Platform
 
+## 📚 Quick Documentation Links
+
+- **[System Architecture](docs/ARCHITECTURE.md)** - Detailed architecture design and component relationships
+- **[Setup Guide](docs/SETUP_GUIDE.md)** - Installation and configuration instructions
+- **[API Documentation](docs/API_DOCUMENTATION.md)** - Complete REST API reference
+- **[Tech Stack](docs/TECH_STACK.md)** - Technologies and libraries used
+- **[Troubleshooting](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Contributing Guide](docs/CONTRIBUTING.md)** - Development guidelines
+- **[N8N Integration](docs/N8N_QUICK_START.md)** - Workflow automation setup
+
 ## Project Overview
 
 Autonomous Talent Partner is an intelligent resume screening and candidate matching platform that leverages artificial intelligence to automate and enhance the hiring process. The system analyzes job descriptions, evaluates candidate resumes, and provides AI-powered suggestions to improve job postings and match candidates with relevant positions.
@@ -136,14 +146,16 @@ root/
 
 ## Documentation Files
 
-- **README.md** (This file) - Project overview and quick start
-- **TECH_STACK.md** - Complete list of technologies, libraries, and tools used
-- **ARCHITECTURE.md** - System architecture, data flow, and component relationships
-- **SETUP_GUIDE.md** - Detailed setup instructions for development and production
-- **TROUBLESHOOTING.md** - Common issues, error solutions, and diagnostics
-- **API_DOCUMENTATION.md** - Complete REST API reference for backend endpoints
-- **MONGODB_SSL_FIX.md** - Solutions for MongoDB Atlas SSL connection issues
-- **CONTRIBUTING.md** - Guidelines for developers contributing to the project
+For comprehensive documentation, please refer to the `docs/` folder:
+
+- **[docs/README.md](docs/)** - Documentation index
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System architecture, data flow, and component relationships
+- **[docs/TECH_STACK.md](docs/TECH_STACK.md)** - Complete list of technologies, libraries, and tools used
+- **[docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md)** - Detailed setup instructions for development and production
+- **[docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)** - Common issues, error solutions, and diagnostics
+- **[docs/API_DOCUMENTATION.md](docs/API_DOCUMENTATION.md)** - Complete REST API reference for backend endpoints
+- **[docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)** - Guidelines for developers contributing to the project
+- **[docs/N8N_QUICK_START.md](docs/N8N_QUICK_START.md)** - N8N integration and workflow automation guide
 
 ## System Requirements
 
